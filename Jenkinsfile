@@ -3,6 +3,11 @@ pipeline {
         label 'build_node_1'
     }
 
+    triggers {
+        
+        pollSCM('H/1 * * * *')
+    }
+
     environment {
         app_name = 'simple-webapp-1.0'
         tomcat_dir = '/opt/tomcat'
@@ -21,8 +26,7 @@ pipeline {
 
         stage('Git Checkout') {
             steps {
-                git url: 'https://github.com/Rameshmamuduru/simple_java_project.git',
-                    branch: 'main'
+                checkout scm
             }
         }
 
