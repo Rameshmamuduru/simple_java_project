@@ -43,5 +43,14 @@ pipeline {
                 }
             }
         }
+
+        stage('Quality Gate') {
+            steps {
+                // Wait for SonarQube analysis to complete
+                timeout(time: 10, unit: 'MINUTES') {   // Increase timeout for PROD
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
     }
 }
