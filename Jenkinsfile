@@ -2,11 +2,29 @@ pipeline {
 
     agent any
 
+    tools {
+        mavn 'maven'
+    }
+
     stages {
 
         stage('Git Checkout') {
             steps {
                 checkout scm
+            }
+        }
+
+        stage ('maven compile') {
+            steps {
+
+                sh 'mvn compile'
+            }
+        }
+
+          stage ('maven build') {
+            steps {
+
+                sh 'mvn clean package'
             }
         }
 
