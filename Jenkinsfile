@@ -1,13 +1,13 @@
 pipeline {
   stages {
 
-    stage (git check out) {
+    stage ('git check out') {
       steps {
         checkout scm
       }
     }
 
-    stage (sonar analysys) {
+    stage ('sonar analysys') {
       steps {
         sh '''
           sonar-scanner /
