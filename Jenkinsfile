@@ -12,14 +12,13 @@ pipeline {
 
     stage ('sonar analysys') {
       steps {
-        sh '''
-          sonar-scanner /
-          Dsonar.projectkey=test_key /
-          Dsonar.projectName=test_name /
-          Dsonar.source=.
-        
-        '''
-      }
+        withSonarQubeEnv('sonar-prod') {
+                    sh '''
+                    sonar-scanner \
+                      -Dsonar.projectKey=test_key \
+                      -Dsonar.projectName=test_name \
+                      -Dsonar.sources=.
+                    '''
     }
   }
 }
