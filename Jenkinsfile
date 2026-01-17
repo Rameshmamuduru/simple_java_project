@@ -2,10 +2,6 @@ pipeline {
 
     agent any
 
-    tools {
-        sonarRunner 'sonar-scanner'
-    }
-
     stages {
 
         stage('Git Checkout') {
@@ -17,12 +13,15 @@ pipeline {
         stage('Sonar Analysis') {
             steps {
                 withSonarQubeEnv('sonar-prod') {
-                    sh '''
-                    sonar-scanner \
-                      -Dsonar.projectKey=test_key \
-                      -Dsonar.projectName=test_name \
-                      -Dsonar.sources=.
-                    '''
+                    script {
+                        def scannerHome = tool 'sonar-scanner'
+                        sh """
+                        ${scannerHome}/bin/sonar-scanner \
+                          -Dsonar.projectKey=test_key \
+                          -Dsonar.projectName=test_name \
+                          -Dsonar.sources=.
+                        """
+                    }
                 }
             }
         }
