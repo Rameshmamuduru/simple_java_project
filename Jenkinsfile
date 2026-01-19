@@ -1,7 +1,7 @@
 pipeline {
     agent { label 'build' }  // Make sure your Jenkins agent has this label
 
-    Environment {
+    environment {
         nexusurl = 'http://13.222.96.18:8081/repository/maven-releases/'
         groupid = 'com.example'
         artifactid = 'simple-webapp'
