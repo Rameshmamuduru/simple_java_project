@@ -27,14 +27,13 @@ pipeline {
             steps {
                 withSonarQubeEnv('sonar-server') {
 
-                    script {
-                        def scannerHome = tool 'sonar-scanner'
-                        sh '''
-                          $(scannerHome)/bin/sonar-scanner \
-                            -Dsonar.projectKey=simple-webapp \
-                            -Dsonar.projectName=simple-webapp \
-                            -Dsonar.sources=.
-                        '''
+                    sh '''
+                      /opt/sonar-scanner/bin/sonar-scanner \
+                        -Dsonar.projectKey=simple-webapp \
+                        -Dsonar.projectName=simple-webapp \
+                        -Dsonar.sources=.
+                    '''
+                    
                     }
                 }
             }
