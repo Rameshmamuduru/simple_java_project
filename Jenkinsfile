@@ -35,7 +35,7 @@ pipeline {
           steps {
 
             withCredentials([usernamePassword(
-                credentialsId: 'nexus_credentials', 
+                credentialsId: 'sonar_credentials', 
                 usernameVariable: 'nexus_user', 
                 passwordVariable: 'nexus_pass'
             )]) {
