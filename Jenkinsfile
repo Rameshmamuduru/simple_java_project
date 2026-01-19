@@ -34,18 +34,24 @@ pipeline {
 
           steps {
 
-            withCredentials([usernamePassword(credentialsID: 'nexus_credentials', passwordVariable: 'nexus_pass', usernameVariable: 'nuxus_user)]) {
-              sh '''
-                mvn deploy:deploy-file \
-                -DgroupId=${groupid} \
-                -DartifactId=${artifactid} \
-                -Durl=${nexusurl} \
-                -Dfile=target/${artifactid}-1.0.war \
-                -DrepositoryId=sonatype-nexus \
-                -Dusername=${nexus_user} \
-                -Dpassword=${nexus_pass} \
-                -Dgeneratepom=true
-              '''
+            withCredentials([usernamePassword(
+                credentialsId: 'nexus_credentials', 
+                usernameVariable: 'nexus_user', 
+                passwordVariable: 'nexus_pass'
+            )]) {
+                sh """
+                    mvn deploy:deploy-file \
+                        -DgroupId=${groupid} \
+                        -DartifactId=${artifactid} \
+                        -Dversion=1.0 \
+                        -Dpackaging=war \
+                        -Dfile=target/${artifactid}-1.0.war \
+                        -Durl=${nexusurl} \
+                        -DrepositoryId=sonatype-nexus \
+                        -Dusername=${nexus_user} \
+                        -Dpassword=${nexus_pass} \
+                        -DgeneratePom=true
+                """
           }
         }
     }
