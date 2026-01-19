@@ -23,6 +23,13 @@ pipeline {
             }
         }
 
+        stage('soanrqube-code-compile/analysis') {
+            steps {
+                withSonarQubeEnv('sonar-server') {
+                    sh 'mvn sonar:sonar'
+                }
+        }
+
         stage('Maven Build') {
             steps {
                 // Compile and package in a single step
