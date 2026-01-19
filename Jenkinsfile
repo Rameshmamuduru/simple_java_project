@@ -26,7 +26,9 @@ pipeline {
         stage('soanrqube-code-compile/analysis') {
             steps {
                 withSonarQubeEnv('sonar-server') {
-                    sh 'mvn sonar:sonar'
+                   -Dsonar.projectKey=${ARTIFACT_ID} \
+                    -Dsonar.projectName=${ARTIFACT_ID} \
+                    -Dsonar.sources=.
                 }
             }
         }
