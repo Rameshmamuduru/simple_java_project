@@ -26,9 +26,12 @@ pipeline {
         stage('soanrqube-code-compile/analysis') {
             steps {
                 withSonarQubeEnv('sonar-server') {
-                   -Dsonar.projectKey=${ARTIFACT_ID} \
-                    -Dsonar.projectName=${ARTIFACT_ID} \
-                    -Dsonar.sources=.
+                   sh '''
+                      sonar-scanner \
+                        -Dsonar.projectKey=simple-webapp \
+                        -Dsonar.projectName=simple-webapp \
+                        -Dsonar.sources=.
+                    '''
                 }
             }
         }
