@@ -1,10 +1,5 @@
 pipeline {
-
-    agent 'build'
-
-    tools {
-        maven 'maven'
-    }
+    agent { label 'build' }  // Make sure your Jenkins agent has this label
 
     stages {
 
@@ -14,40 +9,25 @@ pipeline {
             }
         }
 
-        stage ('maven compile') {
+        stage('Maven Build') {
             steps {
-
-                sh 'mvn compile'
-            }
-        }
-
-          stage ('maven build') {
-            steps {
-
+                // Compile and package in a single step
                 sh 'mvn clean package'
             }
         }
 
-        stage('Sonar Analysis') {
+        stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('sonar-server') {
-                    script {
-                        def scannerHome = tool 'sonar-scanner'
-                        sh """
-                        ${scannerHome}/bin/sonar-scanner \
-                          -Dsonar.projectKey=test_key \
-                          -Dsonar.projectName=test_name \
-                          -Dsonar.sources=.
-                        """
-                    }
+                withSonarQubeEnv('sonar-server') { // Replace with your SonarQube server name
+                    sh "mvn sonar:sonar -Dsonar.projectKey=test_key -Dsonar.projectName=test_name"
                 }
             }
         }
 
         stage('Quality Gate') {
             steps {
-                // Wait for SonarQube analysis to complete
-                timeout(time: 10, unit: 'MINUTES') {   // Increase timeout for PROD
+                // Wait for SonarQube Quality Gate result
+                timeout(time: 15, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
                 }
             }
