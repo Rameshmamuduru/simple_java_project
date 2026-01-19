@@ -1,6 +1,6 @@
 pipeline {
     agent { label 'build' }  // Make sure your Jenkins agent has this label
-    customWorkspace '/home/jenkins/workspace'
+    
 
     stages {
 
