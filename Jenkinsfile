@@ -16,10 +16,15 @@ pipeline {
             }
         }
 
-        stage('SonarQube Analysis') {
-            steps {
-                withSonarQubeEnv('sonar-server') { // Replace with your SonarQube server name
-                    sh "mvn sonar:sonar -Dsonar.projectKey=test_key -Dsonar.projectName=test_name"
+        stage('Sonar Analysis') { 
+            steps { 
+                withSonarQubeEnv('sonar-server') { 
+                    script { 
+                        def scannerHome = tool 'sonar-scanner' 
+                        sh """ ${scannerHome}/bin/sonar-scanner \ 
+                        -Dsonar.projectKey=test_key \ 
+                        -Dsonar.projectName=test_name \ 
+                        -Dsonar.sources=. """
                 }
             }
         }
