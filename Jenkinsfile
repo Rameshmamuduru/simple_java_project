@@ -28,6 +28,7 @@ pipeline {
                 withSonarQubeEnv('sonar-server') {
                     sh 'mvn sonar:sonar'
                 }
+            }
         }
 
         stage('Maven Build') {
