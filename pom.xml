@@ -25,11 +25,18 @@
 
     <build>
         <plugins>
-            <!-- Use modern WAR plugin compatible with newer JDKs -->
+            <!-- WAR plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-war-plugin</artifactId>
                 <version>3.3.2</version>
+            </plugin>
+
+            <!-- Sonar Maven plugin -->
+            <plugin>
+                <groupId>org.sonarsource.scanner.maven</groupId>
+                <artifactId>sonar-maven-plugin</artifactId>
+                <version>4.5.0.2747</version>
             </plugin>
         </plugins>
     </build>
