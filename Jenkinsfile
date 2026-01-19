@@ -34,7 +34,7 @@ pipeline {
 
           steps {
 
-            withCredentials([string(credentialsId: 'sonar_credentials', variable: 'sonar_credentials')]) {
+            withCredentials([usernamePassword(credentialsID: 'nexus_credentials', passwordVariable: 'nexus_pass', usernameVariable: 'nuxus_user)]) {
               sh '''
                 mvn deploy:deploy-file \
                 -DgroupId=${groupid} \
@@ -42,6 +42,9 @@ pipeline {
                 -Durl=${nexusurl} \
                 -Dfile=target/${artifactid}-1.0.war \
                 -DrepositoryId=sonatype-nexus \
+                -Dusername=${nexus_user} \
+                -Dpassword=${nexus_pass} \
+                -Dgeneratepom=true
               '''
           }
         }
