@@ -26,12 +26,16 @@ pipeline {
         stage('soanrqube-code-compile/analysis') {
             steps {
                 withSonarQubeEnv('sonar-server') {
-                   sh '''
-                      sonar-scanner \
-                        -Dsonar.projectKey=simple-webapp \
-                        -Dsonar.projectName=simple-webapp \
-                        -Dsonar.sources=.
-                    '''
+
+                    script {
+                        def scannerhome = tool 'sonar-scanner'
+                        sh '''
+                          $(scannerhome)/bin/sonar-scanner \
+                            -Dsonar.projectKey=simple-webapp \
+                            -Dsonar.projectName=simple-webapp \
+                            -Dsonar.sources=.
+                        '''
+                    }
                 }
             }
         }
