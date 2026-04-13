@@ -19,9 +19,6 @@ steps:
     RunAsPreJob: true
 
 # Use bash instead of CmdLine (recommended on Linux agents)
-- task: Bash@3
-  inputs:
-    targetType: 'inline'
-    script: |
-      echo "Testing the key vault access"
-      echo "Secret value is: $(test)"
+- script: |
+    echo "Testing the key vault access"
+    echo "Secret value is: $(test)"
