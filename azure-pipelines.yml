@@ -1,23 +1,27 @@
-# Maven
-# Build your Java project and run tests with Apache Maven.
-# Add steps that analyze code, save build artifacts, deploy, and more:
-# https://docs.microsoft.com/azure/devops/pipelines/languages/java
-
-trigger:
-- none
+trigger: none
 
 pool:
   vmImage: ubuntu-latest
 
+variables:
+  system.debug: false   # optional → disables noisy logs
+
 steps:
+# Explicit checkout (good practice)
+- checkout: self
+
+# Azure Key Vault task
 - task: AzureKeyVault@2
   inputs:
     azureSubscription: 'Azure subscription 1(c38610e8-76c1-4e24-88af-7f225c0da027)'
     KeyVaultName: 'test-3r3g'
     SecretsFilter: '*'
     RunAsPreJob: true
-- task: CmdLine@2
+
+# Use bash instead of CmdLine (recommended on Linux agents)
+- task: Bash@3
   inputs:
+    targetType: 'inline'
     script: |
-      echo "Testing the key valut accesss"
-      echo :Secret value is: $(test)
+      echo "Testing the key vault access"
+      echo "Secret value is: $(test)"
