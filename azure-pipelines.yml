@@ -4,19 +4,20 @@
 # https://docs.microsoft.com/azure/devops/pipelines/languages/java
 
 trigger:
-- main
+- none
 
 pool:
   vmImage: ubuntu-latest
 
 steps:
-- task: Maven@3
+- task: AzureKeyVault@2
   inputs:
-    mavenPomFile: 'pom.xml'
-    mavenOptions: '-Xmx3072m'
-    javaHomeOption: 'JDKVersion'
-    jdkVersionOption: '1.11'
-    jdkArchitectureOption: 'x64'
-    publishJUnitResults: true
-    testResultsFiles: '**/surefire-reports/TEST-*.xml'
-    goals: 'package'
+    azureSubscription: 'Azure subscription 1(c38610e8-76c1-4e24-88af-7f225c0da027)'
+    KeyVaultName: 'test-3r3g'
+    SecretsFilter: '*'
+    RunAsPreJob: true
+- task: CmdLine@2
+  inputs:
+    script: |
+      echo "Testing the key valut accesss"
+      echo :Secret value is: $(test)
