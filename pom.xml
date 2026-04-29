@@ -29,6 +29,7 @@
             <id>nexus-snapshots</id>
             <url>http://3.110.232.118:8081/repository/my-app-test-snapshots/</url>
         </snapshotRepository>
+             
     </distributionManagement>
 
     <dependencies>
