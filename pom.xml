@@ -8,7 +8,7 @@
     <groupId>com.example</groupId>
     <artifactId>simple-webapp</artifactId>
 
-    <!-- 🔥 Change this depending on repo -->
+    <!-- Change this depending on repo -->
     <version>1.0.0-SNAPSHOT</version>
 
     <packaging>war</packaging>
@@ -18,16 +18,16 @@
         <maven.compiler.target>8</maven.compiler.target>
     </properties>
 
-    <!-- 🔗 🔥 ADD THIS BLOCK -->
+    <!-- ADD THIS BLOCK -->
     <distributionManagement>
         <repository>
-            <id>releases</id>
-            <url>http://65.2.54.34:8081/repository/my-app-test-release/</url>
+            <id>nexus-releases</id>
+            <url>http://3.110.232.118:8081/repository/my-app-test-releases/</url>
         </repository>
 
         <snapshotRepository>
-            <id>snapshots</id>
-            <url>http://65.2.54.34:8081/repository/my-app-test-snapshot/</url>
+            <id>nexus-snapshots</id>
+            <url>http://3.110.232.118:8081/repository/my-app-test-snapshots/</url>
         </snapshotRepository>
     </distributionManagement>
 
