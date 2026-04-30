@@ -71,7 +71,7 @@ pipeline {
                 echo "Stopping Tomcat..."
                 sudo systemctl stop tomcat
 
-                # Backup existing WAR if it exists
+                # Backup existing WAR if it exists.
                 if [ -f ${tomcat_dir}/webapps/${app_name}.war ]; then
                     echo "Backing up existing WAR..."
                     cp ${tomcat_dir}/webapps/${app_name}.war ${tomcat_dir}/backup/${app_name}-${TIME_STAMP}.war
