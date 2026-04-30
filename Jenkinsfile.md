@@ -44,7 +44,7 @@ pipeline {
 
         stage('copy WAR to tomcat server') {
             steps {
-                 // Generate timestamp in Groovy
+                 // Generate timestamp in Groovy.
                 script {
                     env.time_stamp = new Date().format("yyyy-MM-dd-HH-mm-ss")
                 }
