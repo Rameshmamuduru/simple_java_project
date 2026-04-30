@@ -1,71 +1,266 @@
 pipeline {
-    agent { label 'build' }  // Jenkins agent with Maven and Java
+    agent any
 
     environment {
-        NEXUS_URL = 'http://13.222.96.18:8081/repository/maven-releases/'
-        GROUP_ID  = 'com.example'
-        ARTIFACT_ID = 'simple-webapp'
-        VERSION = '1.0'
+        SN_INSTANCE = 'https://dev394841.service-now.com'
+    }
+
+    triggers {
+        githubPush()
     }
 
     stages {
 
-        stage('Git Checkout') {
+        // ================= COMMON =================
+        stage('Checkout') {
             steps {
                 checkout scm
             }
         }
 
-        stage('Maven Compile') {
+        stage('Identify Branch') {
             steps {
-                sh 'mvn clean compile'
+                echo "Branch: ${env.BRANCH_NAME}"
+                echo "PR ID: ${env.CHANGE_ID ?: 'N/A'}"
+                echo "Source: ${env.CHANGE_BRANCH ?: 'N/A'}"
+                echo "Target: ${env.CHANGE_TARGET ?: 'N/A'}"
             }
         }
 
-        stage('SonarQube Analysis') {
-            steps {
-                withSonarQubeEnv('sonar-server') {
-                    sh "mvn sonar:sonar -Dsonar.projectKey=${ARTIFACT_ID} -Dsonar.projectName=${ARTIFACT_ID}"
+        // ================= PR VALIDATION =================
+        stage('PR Validation') {
+            when { changeRequest() }
+
+            stages {
+
+                stage('Build Validation') {
+                    steps {
+                        sh 'mvn clean compile'
+                    }
+                }
+
+                stage('Test') {
+                    steps {
+                        sh 'mvn test'
+                    }
+                }
+
+                stage('Sonar Scan') {
+                    steps {
+                        withSonarQubeEnv('SONAR_SERVER') {
+                            sh """
+                                ${tool 'SONAR_SCANER'}/bin/sonar-scanner \
+                                -Dsonar.projectKey=my-app \
+                                -Dsonar.projectName=my-app \
+                                -Dsonar.sources=.
+                            """
+                        }
+                    }
+                }
+
+                stage('Quality Gate') {
+                    steps {
+                        timeout(time: 10, unit: 'MINUTES') {
+                            waitForQualityGate abortPipeline: true
+                        }
+                    }
                 }
             }
         }
 
-        stage('Maven Build') {
-            steps {
-                sh 'mvn clean package'
-            }
-        }
+        // ================= DEVELOPMENT =================
+        stage('Development Pipeline') {
+            when { branch 'develop' }
 
-        stage('Upload Artifact to Nexus') {
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'nexus_credentials',  // Make sure this is a Nexus username/password credential
-                    usernameVariable: 'NEXUS_USER',
-                    passwordVariable: 'NEXUS_PASS'
-                )]) {
-                    sh """
-                        mvn deploy:deploy-file \
-                            -DgroupId=${GROUP_ID} \
-                            -DartifactId=${ARTIFACT_ID} \
-                            -Dversion=${VERSION} \
-                            -Dpackaging=war \
-                            -Dfile=target/${ARTIFACT_ID}-${VERSION}.war \
-                            -Durl=${NEXUS_URL} \
-                            -DrepositoryId=nexus-releases \
-                            -Dusername=${NEXUS_USER} \
-                            -Dpassword=${NEXUS_PASS} \
-                            -DgeneratePom=true
-                    """
+            stages {
+
+                stage('Build') {
+                    steps {
+                        sh 'mvn clean package'
+                    }
+                }
+
+                stage('Test') {
+                    steps {
+                        sh 'mvn test'
+                    }
+                }
+
+                stage('Sonar Scan') {
+                    steps {
+                        withSonarQubeEnv('SONAR_SERVER') {
+                            sh """
+                                ${tool 'SONAR_SCANER'}/bin/sonar-scanner \
+                                -Dsonar.projectKey=my-app \
+                                -Dsonar.projectName=my-app \
+                                -Dsonar.sources=.
+                            """
+                        }
+                    }
+                }
+
+                stage('Quality Gate') {
+                    steps {
+                        timeout(time: 10, unit: 'MINUTES') {
+                            waitForQualityGate abortPipeline: true
+                        }
+                    }
+                }
+
+                stage('Publish Artifacts') {
+                    steps {
+                        sh 'mvn deploy'
+                    }
+                }
+
+                stage('Deploy to Dev Environment') {
+                    steps {
+                        echo 'Deploying to development environment...'
+                        sh 'curl -f http://dev-environment/health'
+                    }
                 }
             }
         }
 
+        // ================= RELEASE =================
+        stage('Release Pipeline') {
+            when {
+                branch pattern: "release/.*", comparator: "REGEXP"
+            }
+
+            stages {
+
+                stage('Build and Verify') {
+                    steps {
+                        sh 'mvn clean verify -Pqa-tests'
+                    }
+                }
+
+                stage('Deploy to QA') {
+                    steps {
+                        echo 'Deploying to QA...'
+                    }
+                }
+
+                stage('QA Health Check') {
+                    steps {
+                        sh 'curl -f http://qa-environment/health'
+                    }
+                }
+
+                stage('DAST Scan') {
+                    steps {
+                        echo 'Running DAST scan...'
+                    }
+                }
+
+                stage('Approval for UAT') {
+                    steps {
+                        timeout(time: 10, unit: 'MINUTES') {
+                            input message: 'Approve deployment to UAT?', ok: 'Deploy'
+                        }
+                    }
+                }
+
+                stage('Deploy to UAT') {
+                    steps {
+                        echo 'Deploying to UAT...'
+                    }
+                }
+
+                stage('UAT Health Check') {
+                    steps {
+                        sh 'curl -f http://uat-environment/health'
+                    }
+                }
+            }
+        }
+
+        // ================= PRODUCTION =================
+        stage('Production Pipeline') {
+            when {
+                allOf {
+                    branch 'main'
+                    not { changeRequest() }
+                }
+            }
+
+            stages {
+
+                stage('ServiceNow Approval Loop') {
+                    steps {
+                        script {
+                            def approved = false
+
+                            while (!approved) {
+
+                                stage('Approval Input') {
+                                    def userInput = input(
+                                        message: 'Enter Change Number and Approve',
+                                        ok: 'Approve',
+                                        parameters: [
+                                            string(name: 'CHANGE_NUMBER', defaultValue: '', description: 'Enter Change Number (e.g., CHG0030002)')
+                                        ]
+                                    )
+                                    env.USER_CHANGE = userInput
+                                    echo "Entered Change: ${env.USER_CHANGE}"
+                                }
+
+                                stage('Validate Change Approval') {
+                                    withCredentials([usernamePassword(
+                                        credentialsId: 'SERVICE_NOW_CRED',
+                                        usernameVariable: 'user',
+                                        passwordVariable: 'pass'
+                                    )]) {
+
+                                        def response = sh(
+                                            script: """
+                                                curl -s -k -u $user:$pass \
+                                                "$SN_INSTANCE/api/now/table/change_request?sysparm_query=number=${env.USER_CHANGE}"
+                                            """,
+                                            returnStdout: true
+                                        ).trim()
+
+                                        echo "API Response: ${response}"
+
+                                        def approval = response.split('"approval":"')[1].split('"')[0]
+                                        echo "Approval Status: ${approval}"
+
+                                        if (approval == "approved") {
+                                            echo "Change Approved"
+                                            approved = true
+                                        } else {
+                                            echo "Change not approved. Retry."
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                stage('Deploy to Production') {
+                    steps {
+                        echo 'Deploying to Production...'
+                        sh 'curl -f http://prod-environment/health'
+                    }
+                }
+
+                stage('Production Health Check') {
+                    steps {
+                        sh 'curl -f http://prod-environment/health'
+                    }
+                }
+            }
+        }
     }
 
     post {
-        always {
-            archiveArtifacts artifacts: "target/${ARTIFACT_ID}-${VERSION}.war", allowEmptyArchive: true
-            cleanWs()
+        success {
+            echo 'Pipeline completed successfully'
+        }
+        failure {
+            echo 'Pipeline failed'
         }
     }
 }
