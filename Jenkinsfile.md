@@ -61,7 +61,7 @@ pipeline {
 
         stage('Deploy to PROD') {
             steps {
-                 // Ensure TIME_STAMP is defined in a previous step or here
+                 // Ensure TIME_STAMP is defined in a previous step or here.
         script {
             env.TIME_STAMP = new Date().format("yyyy-MM-dd-HH-mm-ss")
         }
