@@ -22,12 +22,12 @@
     <distributionManagement>
         <repository>
             <id>nexus-releases</id>
-            <url>http://43.205.92.184:8081/repository/my-app-test-releases/</url>
+            <url>http://13.204.89.141:8081/repository/my-app-test-releases/</url>
         </repository>
 
         <snapshotRepository>
             <id>nexus-snapshots</id>
-            <url>http://43.205.92.184:8081/repository/my-app-test-snapshots/</url>
+            <url>http://13.204.89.141:8081/repository/my-app-test-snapshots/</url>
         </snapshotRepository>
              
     </distributionManagement>
