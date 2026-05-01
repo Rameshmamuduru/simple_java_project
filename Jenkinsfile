@@ -11,7 +11,7 @@ pipeline {
 
     stages {
 
-        // ================= COMMON =================
+        // ================= COMMON ==================
         stage('Checkout') {
             steps {
                 checkout scm
@@ -28,229 +28,242 @@ pipeline {
         }
 
         // ================= PR VALIDATION =================
-        stage('PR Validation') {
+        stage('PR Validation - Build') {
             when { changeRequest() }
+            steps {
+                sh 'mvn clean compile'
+            }
+        }
 
-            stages {
+        stage('PR Validation - Test') {
+            when { changeRequest() }
+            steps {
+                sh 'mvn test'
+            }
+        }
 
-                stage('Build Validation') {
-                    steps {
-                        sh 'mvn clean compile'
+        stage('PR Validation - Sonar Scan') {
+            when { changeRequest() }
+            steps {
+                withSonarQubeEnv('sonar_server') {
+                    script {
+                        def scannerHome = tool 'sonar-scanner'
+                        sh """
+                            ${scannerHome}/bin/sonar-scanner \
+                            -Dsonar.projectKey=simple-webapp \
+                            -Dsonar.projectName=simple-webapp \
+                            -Dsonar.sources=.
+                        """
                     }
                 }
+            }
+        }
 
-                stage('Test') {
-                    steps {
-                        sh 'mvn test'
-                    }
-                }
-
-                stage('Sonar Scan') {
-                    steps {
-                        withSonarQubeEnv('SONAR_SERVER') {
-                            sh """
-                                ${tool 'SONAR_SCANER'}/bin/sonar-scanner \
-                                -Dsonar.projectKey=my-app \
-                                -Dsonar.projectName=my-app \
-                                -Dsonar.sources=.
-                            """
-                        }
-                    }
-                }
-
-                stage('Quality Gate') {
-                    steps {
-                        timeout(time: 10, unit: 'MINUTES') {
-                            waitForQualityGate abortPipeline: true
-                        }
-                    }
+        stage('PR Quality Gate') {
+            when { changeRequest() }
+            steps {
+                timeout(time: 10, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
                 }
             }
         }
 
         // ================= DEVELOPMENT =================
-        stage('Development Pipeline') {
+        stage('Development Build') {
             when { branch 'develop' }
+            steps {
+                sh 'mvn clean package'
+            }
+        }
 
-            stages {
+        stage('Development Test') {
+            when { branch 'develop' }
+            steps {
+                sh 'mvn test'
+            }
+        }
 
-                stage('Build') {
-                    steps {
-                        sh 'mvn clean package'
+        stage('Development Sonar Scan') {
+            when { branch 'develop' }
+            steps {
+                withSonarQubeEnv('sonar_server') {
+                    script {
+                        def scannerHome = tool 'sonar-scanner'
+                        sh """
+                            ${scannerHome}/bin/sonar-scanner \
+                            -Dsonar.projectKey=simple-webapp \
+                            -Dsonar.projectName=simple-webapp \
+                            -Dsonar.sources=.
+                        """
                     }
                 }
+            }
+        }
 
-                stage('Test') {
-                    steps {
-                        sh 'mvn test'
-                    }
+        stage('Development Quality Gate') {
+            when { branch 'develop' }
+            steps {
+                timeout(time: 10, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
                 }
+            }
+        }
 
-                stage('Sonar Scan') {
-                    steps {
-                        withSonarQubeEnv('SONAR_SERVER') {
-                            sh """
-                                ${tool 'SONAR_SCANER'}/bin/sonar-scanner \
-                                -Dsonar.projectKey=my-app \
-                                -Dsonar.projectName=my-app \
-                                -Dsonar.sources=.
-                            """
-                        }
-                    }
-                }
+        stage('Publish Artifacts') {
+            when { branch 'develop' }
+            steps {
+                sh 'mvn deploy'
+            }
+        }
 
-                stage('Quality Gate') {
-                    steps {
-                        timeout(time: 10, unit: 'MINUTES') {
-                            waitForQualityGate abortPipeline: true
-                        }
-                    }
-                }
-
-                stage('Publish Artifacts') {
-                    steps {
-                        sh 'mvn deploy'
-                    }
-                }
-
-                stage('Deploy to Dev Environment') {
-                    steps {
-                        echo 'Deploying to development environment...'
-                        sh 'curl -f http://dev-environment/health'
-                    }
-                }
+        stage('Deploy to Dev Environment') {
+            when { branch 'develop' }
+            steps {
+                echo 'Deploying to development environment...'
+                sh 'curl -f http://dev-environment/health'
             }
         }
 
         // ================= RELEASE =================
-        stage('Release Pipeline') {
+        stage('Release Build & Verify') {
             when {
                 branch pattern: "release/.*", comparator: "REGEXP"
             }
+            steps {
+                sh 'mvn clean verify -Pqa-tests'
+            }
+        }
 
-            stages {
+        stage('Deploy to QA') {
+            when {
+                branch pattern: "release/.*", comparator: "REGEXP"
+            }
+            steps {
+                echo 'Deploying to QA...'
+            }
+        }
 
-                stage('Build and Verify') {
-                    steps {
-                        sh 'mvn clean verify -Pqa-tests'
-                    }
-                }
+        stage('QA Health Check') {
+            when {
+                branch pattern: "release/.*", comparator: "REGEXP"
+            }
+            steps {
+                sh 'curl -f http://qa-environment/health'
+            }
+        }
 
-                stage('Deploy to QA') {
-                    steps {
-                        echo 'Deploying to QA...'
-                    }
-                }
+        stage('DAST Scan') {
+            when {
+                branch pattern: "release/.*", comparator: "REGEXP"
+            }
+            steps {
+                echo 'Running DAST scan...'
+            }
+        }
 
-                stage('QA Health Check') {
-                    steps {
-                        sh 'curl -f http://qa-environment/health'
-                    }
-                }
-
-                stage('DAST Scan') {
-                    steps {
-                        echo 'Running DAST scan...'
-                    }
-                }
-
-                stage('Approval for UAT') {
-                    steps {
-                        timeout(time: 10, unit: 'MINUTES') {
-                            input message: 'Approve deployment to UAT?', ok: 'Deploy'
-                        }
-                    }
-                }
-
-                stage('Deploy to UAT') {
-                    steps {
-                        echo 'Deploying to UAT...'
-                    }
-                }
-
-                stage('UAT Health Check') {
-                    steps {
-                        sh 'curl -f http://uat-environment/health'
-                    }
+        stage('UAT Approval') {
+            when {
+                branch pattern: "release/.*", comparator: "REGEXP"
+            }
+            steps {
+                timeout(time: 10, unit: 'MINUTES') {
+                    input message: 'Approve deployment to UAT?', ok: 'Deploy'
                 }
             }
         }
 
+        stage('Deploy to UAT') {
+            when {
+                branch pattern: "release/.*", comparator: "REGEXP"
+            }
+            steps {
+                echo 'Deploying to UAT...'
+            }
+        }
+
+        stage('UAT Health Check') {
+            when {
+                branch pattern: "release/.*", comparator: "REGEXP"
+            }
+            steps {
+                sh 'curl -f http://uat-environment/health'
+            }
+        }
+
         // ================= PRODUCTION =================
-        stage('Production Pipeline') {
+        stage('Production Approval Loop') {
             when {
                 allOf {
                     branch 'main'
                     not { changeRequest() }
                 }
             }
+            steps {
+                script {
+                    def approved = false
 
-            stages {
+                    while (!approved) {
 
-                stage('ServiceNow Approval Loop') {
-                    steps {
-                        script {
-                            def approved = false
+                        def userInput = input(
+                            message: 'Enter Change Number and Approve',
+                            ok: 'Approve',
+                            parameters: [
+                                string(name: 'CHANGE_NUMBER', defaultValue: '', description: 'Enter Change Number')
+                            ]
+                        )
 
-                            while (!approved) {
+                        env.USER_CHANGE = userInput
 
-                                stage('Approval Input') {
-                                    def userInput = input(
-                                        message: 'Enter Change Number and Approve',
-                                        ok: 'Approve',
-                                        parameters: [
-                                            string(name: 'CHANGE_NUMBER', defaultValue: '', description: 'Enter Change Number (e.g., CHG0030002)')
-                                        ]
-                                    )
-                                    env.USER_CHANGE = userInput
-                                    echo "Entered Change: ${env.USER_CHANGE}"
-                                }
+                        withCredentials([usernamePassword(
+                            credentialsId: 'SERVICE_NOW_CRED',
+                            usernameVariable: 'user',
+                            passwordVariable: 'pass'
+                        )]) {
 
-                                stage('Validate Change Approval') {
-                                    withCredentials([usernamePassword(
-                                        credentialsId: 'SERVICE_NOW_CRED',
-                                        usernameVariable: 'user',
-                                        passwordVariable: 'pass'
-                                    )]) {
+                            def response = sh(
+                                script: """
+                                    curl -s -k -u $user:$pass \
+                                    "$SN_INSTANCE/api/now/table/change_request?sysparm_query=number=${env.USER_CHANGE}"
+                                """,
+                                returnStdout: true
+                            ).trim()
 
-                                        def response = sh(
-                                            script: """
-                                                curl -s -k -u $user:$pass \
-                                                "$SN_INSTANCE/api/now/table/change_request?sysparm_query=number=${env.USER_CHANGE}"
-                                            """,
-                                            returnStdout: true
-                                        ).trim()
+                            echo "Response: ${response}"
 
-                                        echo "API Response: ${response}"
-
-                                        def approval = response.split('"approval":"')[1].split('"')[0]
-                                        echo "Approval Status: ${approval}"
-
-                                        if (approval == "approved") {
-                                            echo "Change Approved"
-                                            approved = true
-                                        } else {
-                                            echo "Change not approved. Retry."
-                                        }
-                                    }
-                                }
+                            if (response.contains('"approval":"approved"')) {
+                                echo "Change Approved"
+                                approved = true
+                            } else {
+                                echo "Not approved yet. Retry..."
                             }
                         }
                     }
                 }
+            }
+        }
 
-                stage('Deploy to Production') {
-                    steps {
-                        echo 'Deploying to Production...'
-                        sh 'curl -f http://prod-environment/health'
-                    }
+        stage('Deploy to Production') {
+            when {
+                allOf {
+                    branch 'main'
+                    not { changeRequest() }
                 }
+            }
+            steps {
+                echo 'Deploying to Production...'
+                sh 'curl -f http://prod-environment/health'
+            }
+        }
 
-                stage('Production Health Check') {
-                    steps {
-                        sh 'curl -f http://prod-environment/health'
-                    }
+        stage('Production Health Check') {
+            when {
+                allOf {
+                    branch 'main'
+                    not { changeRequest() }
                 }
+            }
+            steps {
+                sh 'curl -f http://prod-environment/health'
             }
         }
     }
