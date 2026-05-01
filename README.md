@@ -41,8 +41,11 @@ docker ps
   - user: admin
   - pass: admin
 <img width="1365" height="517" alt="image" src="https://github.com/user-attachments/assets/0f699a21-d0a0-476e-9019-25ca3b348eda" />
-- create a token and keep it same  ----  ex: squ_18ba3a47646daed7f61475c445d0c92e471ede4e
-- Create a webhook ------ ex: http://13.235.215.21:8080/sonarqube-webhook/
+- create a token and keep it same
+```
+ex: squ_18ba3a47646daed7f61475c445d0c92e471ede4e
+```
+- Create a webhook
 
 - For Nexus:
   - user: admin
