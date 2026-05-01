@@ -183,5 +183,16 @@ ssh jenkins@<agent_privateIP>
   <img width="1365" height="467" alt="image" src="https://github.com/user-attachments/assets/b31b5699-8f27-48d8-9696-8f0c984093e9" />
 
 
-
+### System configaration in jenkins
+- SonarQube Server:
+  - server url: <http://13.204.89.141:9000>
+  - Add global credential as secret text use sonarqube API token created earlier
+  - SAVE
+ 
+### Tools Configaration:
+- SonarScanner
+  - name: sonar-scanner
+  - auto install
+  - SAVE
+  - 
 
