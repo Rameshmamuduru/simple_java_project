@@ -56,7 +56,9 @@ http://13.204.89.141:8081/repository/Simple-webapp-snapshots/
 http://13.204.89.141:8081/repository/Simple-webapp-releases/
 http://13.204.89.141:8081/repository/Simple-webapp-rc-releases/
 ```
+
 - add below lines of code to Pom.xml
+```
 <distributionManagement>
         <repository>
             <id>nexus-releases</id>
@@ -69,7 +71,7 @@ http://13.204.89.141:8081/repository/Simple-webapp-rc-releases/
         </snapshotRepository>
              
     </distributionManagement>
-
+```
 
 
 
