@@ -45,7 +45,7 @@ pipeline {
         stage('PR Validation - Sonar Scan') {
             when { changeRequest() }
             steps {
-                withSonarQubeEnv('sonar-server') {
+                withSonarQubeEnv('sonar_server') {
                     script {
                         def scannerHome = tool 'sonar_scanner'
                         sh """
@@ -86,7 +86,7 @@ pipeline {
         stage('Development Sonar Scan') {
             when { branch 'develop' }
             steps {
-                withSonarQubeEnv('sonar-server') {
+                withSonarQubeEnv('sonar_server') {
                     script {
                         def scannerHome = tool 'sonar_scanner'
                         sh """
