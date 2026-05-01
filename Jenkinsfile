@@ -11,7 +11,7 @@ pipeline {
 
     stages {
 
-        // ================= COMMON =================
+        // ================= COMMON ==================
         stage('Checkout') {
             steps {
                 checkout scm
