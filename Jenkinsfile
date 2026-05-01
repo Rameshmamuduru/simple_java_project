@@ -48,8 +48,9 @@ pipeline {
                 stage('Sonar Scan') {
                     steps {
                         withSonarQubeEnv('sonar-server') {
+                            def scannerHome = tool 'sonar_scanner'
                             sh """
-                                ${tool 'sonar_scanner'}/bin/sonar-scanner \
+                                ${scannerHome}/bin/sonar-scanner \
                                 -Dsonar.projectKey=simple-webapp \
                                 -Dsonar.projectName=simple-webapp \
                                 -Dsonar.sources=.
@@ -89,8 +90,9 @@ pipeline {
                 stage('Sonar Scan') {
                     steps {
                         withSonarQubeEnv('sonar-server') {
+                            def scannerHome = tool 'sonar_scanner'
                             sh """
-                                ${tool 'sonar_scanner'}/bin/sonar-scanner \
+                                ${scannerHome}/bin/sonar-scanner \
                                 -Dsonar.projectKey=simple-webapp \
                                 -Dsonar.projectName=simple-webapp \
                                 -Dsonar.sources=.
