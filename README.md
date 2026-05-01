@@ -15,7 +15,7 @@ sudo apt install jenkins
 ```
 <img width="1365" height="674" alt="image" src="https://github.com/user-attachments/assets/a382cb32-6541-4601-8bd7-cc951a6a7d3d" />
 
-## Launch EC2 and setup SonarQube,trivy,Nexus
+## Launch EC2 and setup SonarQube,trivy,Nexus,Maven
 ```
 sudo apt update
 sudo adduser jenkins
@@ -33,10 +33,13 @@ sudo apt-get install trivy -y
 docker run -d --name sonarqube -p 9000:9000 sonarqube:lts
 docker run -d --name nexus -p 8081:8081 sonatype/nexus3
 docker ps
+
+sudo apt-get install maven -y
+
 ```
-<img width="1360" height="574" alt="image" src="https://github.com/user-attachments/assets/5a6e61c6-2dfe-4c0d-9acb-1ccbd054a3d3" />
 
 ### Access SonarQube Do Below setup:
+
 - For SonarQube
   - user: admin
   - pass: admin
@@ -55,6 +58,9 @@ ex: squ_18ba3a47646daed7f61475c445d0c92e471ede4e
   
 <img width="1365" height="485" alt="image" src="https://github.com/user-attachments/assets/d918f86d-b73d-4c6d-8538-bd48567fa218" />
 
+
+### Nexus Setup:
+
 - create three hosted repos in Nexus (one for snapshots and two for releases)
 
 <img width="1025" height="236" alt="image" src="https://github.com/user-attachments/assets/241a7acd-5924-459b-9853-c97f6baa805b" />
@@ -64,6 +70,8 @@ ex: squ_18ba3a47646daed7f61475c445d0c92e471ede4e
 http://13.204.89.141:8081/repository/Simple-webapp-snapshots/
 http://13.204.89.141:8081/repository/Simple-webapp-releases/
 http://13.204.89.141:8081/repository/Simple-webapp-rc-releases/
+http://13.204.89.141:8081/repository/Simple-webapp-maven-public/
+http://13.204.89.141:8081/repository/Simple-webapp-maven-proxy/
 ```
 
 - add below lines of code to Pom.xml
@@ -81,6 +89,38 @@ http://13.204.89.141:8081/repository/Simple-webapp-rc-releases/
              
 </distributionManagement>
 ```
+- Do below for maven setting.xml
+```
+<servers>
+    <server>
+      <id>nexus-releases</id>
+      <username>admin</username>
+      <password>admin123</password>
+    </server>
+
+    <server>
+      <id>nexus-snapshots</id>
+      <username>admin</username>
+      <password>admin123</password>
+    </server>
+  </servers>
+
+<mirrors>
+  <mirror>
+    <id>nexus</id>
+    <mirrorOf>*</mirrorOf>
+    <url>http://<nexus-ip>:8081/repository/maven-public/</url>
+  </mirror>
+</mirrors>
+```
+**Note ID should with ID with POM**
+
+- Run below command to validate the mvn+nexus
+```
+git clone <url?
+mvn valiate
+mvn dependency resolve
+````
 
 
 
