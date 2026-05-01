@@ -47,11 +47,11 @@ pipeline {
 
                 stage('Sonar Scan') {
                     steps {
-                        withSonarQubeEnv('SONAR_SERVER') {
+                        withSonarQubeEnv('sonar-server') {
                             sh """
-                                ${tool 'SONAR_SCANER'}/bin/sonar-scanner \
-                                -Dsonar.projectKey=my-app \
-                                -Dsonar.projectName=my-app \
+                                ${tool 'sonar_scanner'}/bin/sonar-scanner \
+                                -Dsonar.projectKey=simple-webapp \
+                                -Dsonar.projectName=simple-webapp \
                                 -Dsonar.sources=.
                             """
                         }
@@ -88,11 +88,11 @@ pipeline {
 
                 stage('Sonar Scan') {
                     steps {
-                        withSonarQubeEnv('SONAR_SERVER') {
+                        withSonarQubeEnv('sonar-server') {
                             sh """
-                                ${tool 'SONAR_SCANER'}/bin/sonar-scanner \
-                                -Dsonar.projectKey=my-app \
-                                -Dsonar.projectName=my-app \
+                                ${tool 'sonar_scanner'}/bin/sonar-scanner \
+                                -Dsonar.projectKey=simple-webapp \
+                                -Dsonar.projectName=simple-webapp \
                                 -Dsonar.sources=.
                             """
                         }
