@@ -121,6 +121,67 @@ git clone <url?
 mvn valiate
 mvn dependency resolve
 ````
+## setup password less authentication between master and slave:
+
+- in Jenkins server (Master)
+
+```
+su - jenkins
+ssh-keygen -t rsa
+cd .ssh
+cat id_rsa.pub
+copy the public key
+```
+
+- In agent1
+  
+```
+su - jenkins
+mkdir ~/.ssh
+mkdir ~/.ssh/authorized_keys
+vim ~/.ssh/authorized_keys
+Paste public key from jenkins master
+chmod 700 ~/.ssh
+chmod ~/.ssh/authorized_keys
+login as root user
+vim /etc/ssh/sshd_config
+
+uncomment Below
+PublicKeyAuthentication 
+AutherizeKeyFile
+PasswordAuthentication
+
+systemctl restart ssh
+```
+
+- verify ssh from master
+```
+ssh jenkins@<agent_privateIP>
+```
+<img width="1364" height="602" alt="image" src="https://github.com/user-attachments/assets/a626c6fa-7771-4210-a95f-79ef3c28d9bd" />
+
+## Jenkins configaration:
+
+### Pluggins
+- stage view
+- sonarqube server
+- Sonar Quality Gates
+- Nexus Artifact Uploader
+
+## Nodes (Agent Setup)
+- Console-nodes-newnode
+  - name: agent1
+  - check permanent check box
+  - Number of executors -2
+  - remote root directory: /home/jenkins
+  - Labels: agent1
+  - Launch method Ssh: using private IP
+  - add Host IP and add credential as sshusername and provate key
+  - Host Key Verification Strategy: Manual trusted key verification
+  - save
+ 
+  <img width="1365" height="467" alt="image" src="https://github.com/user-attachments/assets/b31b5699-8f27-48d8-9696-8f0c984093e9" />
+
 
 
 
