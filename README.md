@@ -47,9 +47,13 @@ docker ps
 - For Nexus:
   - user: admin
   - pass: do ---- docker exec -it 0a496397beb2 cat /nexus-data/admin.password
+  
 <img width="1365" height="485" alt="image" src="https://github.com/user-attachments/assets/d918f86d-b73d-4c6d-8538-bd48567fa218" />
+
 - create three hosted repos in Nexus (one for snapshots and two for releases)
+
 <img width="1025" height="236" alt="image" src="https://github.com/user-attachments/assets/241a7acd-5924-459b-9853-c97f6baa805b" />
+
 - url's keep same will use in POM
 ```
 http://13.204.89.141:8081/repository/Simple-webapp-snapshots/
@@ -70,7 +74,7 @@ http://13.204.89.141:8081/repository/Simple-webapp-rc-releases/
             <url>http://13.204.89.141:8081/repository/Simple-webapp-snapshots/</url>
         </snapshotRepository>
              
-    </distributionManagement>
+</distributionManagement>
 ```
 
 
