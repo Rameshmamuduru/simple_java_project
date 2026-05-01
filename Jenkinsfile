@@ -1,5 +1,5 @@
 pipeline {
-    agent any
+    agent { label 'agent1' }
 
     environment {
         SN_INSTANCE = 'https://dev394841.service-now.com'
