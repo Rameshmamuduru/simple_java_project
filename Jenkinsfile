@@ -49,7 +49,7 @@ pipeline {
                     script {
                         def scannerHome = tool 'sonar_scanner'
                         sh """
-                            ${scannerHome}/bin/sonar-scanner \
+                            ${scannerHome}/bin/sonar_scanner \
                             -Dsonar.projectKey=simple-webapp \
                             -Dsonar.projectName=simple-webapp \
                             -Dsonar.sources=.
@@ -90,7 +90,7 @@ pipeline {
                     script {
                         def scannerHome = tool 'sonar_scanner'
                         sh """
-                            ${scannerHome}/bin/sonar-scanner \
+                            ${scannerHome}/bin/sonar_scanner \
                             -Dsonar.projectKey=simple-webapp \
                             -Dsonar.projectName=simple-webapp \
                             -Dsonar.sources=.
