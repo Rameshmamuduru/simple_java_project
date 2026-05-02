@@ -62,3 +62,4 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "Promotion successful: $ARTIFACT_ID-$VERSION.war"
+echo "$ARTIFACT_ID-$VERSION.war" > last_success.txt
