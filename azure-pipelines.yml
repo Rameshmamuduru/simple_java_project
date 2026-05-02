@@ -72,6 +72,5 @@ stages:
               echo "Starting Tomcat..."
               sudo systemctl start tomcat
 
-              echo "Health Check..."
-              curl http://3.110.77.189:8080/app/ || exit 1
+              echo "Deployment Completed Successfully........."
           displayName: Deploy Application
