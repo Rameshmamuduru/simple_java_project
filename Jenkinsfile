@@ -242,6 +242,50 @@ pipeline {
             }
         }
 
+        stage(Promote Artifacts to Nexus-release Repo){
+            when {
+                allOf {
+                    branch 'main'
+                    not { changeRequest() }
+                }
+            }
+            steps{
+                chmod +x deploy-prod.sh
+                sh './deploy-prod.sh'
+            }
+        }
+        stage('Get Latest Artifact Name') {
+            when {
+                allOf {
+                    branch 'main'
+                    not { changeRequest() }
+                }
+            }
+            steps {
+                script {
+        
+                    ARTIFACT = sh(
+                        script: """
+                        curl -s -u "$NEXUS_USER:$NEXUS_PASS" \
+                        "$NEXUS_URL/service/rest/v1/search/assets?repository=maven-releases&name=app" \
+                        | jq -r '.items[].path' \
+                        | grep ".war" \
+                        | sort -V \
+                        | tail -1 \
+                        | awk -F'/' '{print \$NF}'
+                        """,
+                        returnStdout: true
+                    ).trim()
+        
+                    if (!ARTIFACT) {
+                        error "No WAR found in Nexus!"
+                    }
+        
+                    echo "Latest Artifact: ${ARTIFACT}"
+                }
+            }
+        }
+
         stage('Deploy to Production') {
             when {
                 allOf {
@@ -250,8 +294,17 @@ pipeline {
                 }
             }
             steps {
+                sh """
                 echo 'Deploying to Production...'
-                sh 'curl -f http://prod-environment/health'
+                
+                # download from Nexus release repo
+                curl -f -u "$NEXUS_USER:$NEXUS_PASS" -O \
+                "$NEXUS_URL/repository/maven-releases/com/company/app/${ARTIFACT}"
+
+                chmod +x deploy-prod.sh
+                ./deploy-prod.sh ${ARTIFACT}
+                
+                """                
             }
         }
 
