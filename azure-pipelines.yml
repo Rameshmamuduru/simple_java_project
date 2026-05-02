@@ -1,24 +1,124 @@
-trigger: none
+trigger:
+  branches:
+    include:
+      - main
+      - develop
+      - release/*
+
+pr:
+  branches:
+    include:
+      - develop
+      - main
 
 pool:
-  vmImage: Default
+  vmImage: ubuntu-latest
 
 variables:
-  system.debug: false   # optional → disables noisy logs
+  system.debug: false
 
-steps:
-# Explicit checkout (good practice)
-- checkout: self
+stages:
 
-# Azure Key Vault task
-- task: AzureKeyVault@2
-  inputs:
-    azureSubscription: 'Azure subscription 1(c38610e8-76c1-4e24-88af-7f225c0da027)'
-    KeyVaultName: 'test-3r3g'
-    SecretsFilter: '*'
-    RunAsPreJob: true
+# ================= CHECKOUT =================
+- stage: Checkout
+  displayName: Git Checkout Stage
+  jobs:
+    - job: checkout
+      steps:
+        - checkout: self
 
-# Use bash instead of CmdLine (recommended on Linux agents)
-- script: |
-    echo "Testing the key vault access"
-    echo "Secret value is: $(test)"
+# ================= IDENTIFY =================
+- stage: Identify_Branch_PR
+  displayName: Show Branch/PR
+  jobs:
+    - job: identify
+      steps:
+        - script: |
+            echo "Identifying Branch"
+            echo "BRANCH: $(Build.SourceBranch)"
+
+            if [ "$(Build.Reason)" = "PullRequest" ]; then
+              echo "PR ID: $(System.PullRequest.PullRequestId)"
+              echo "Source: $(System.PullRequest.SourceBranch)"
+              echo "Target: $(System.PullRequest.TargetBranch)"
+            else
+              echo "PR ID: N/A"
+              echo "Source: N/A"
+              echo "Target: N/A"
+            fi
+          displayName: Show Branch Info
+
+# ================= PR VALIDATION =================
+- stage: PR_Validation
+  displayName: PR Validation Pipeline
+  condition: eq(variables['Build.Reason'], 'PullRequest')
+
+  jobs:
+    - job: build_test
+      steps:
+        - checkout: self
+
+        - script: |
+            mvn clean compile
+          displayName: Maven Compile
+
+        - task: SonarQubePrepare@8
+          inputs:
+            SonarQube: 'test-sonar'
+            scannerMode: 'cli'
+            cliScannerVersion: '9.0'
+            configMode: 'manual'
+            cliProjectKey: 'simple-webapp'
+            cliProjectName: 'simple-webapp'
+            cliSources: '.'
+
+        - task: SonarQubePublish@8
+          inputs:
+            pollingTimeoutSec: '200'
+
+# ================= DEVELOPMENT =================
+- stage: Development_Build
+  displayName: Build and Deploy on Develop Branch
+  condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+
+  jobs:
+    - job: dev_build
+      steps:
+        - checkout: self
+
+        - script: |
+            mvn clean package
+          displayName: Build Artifact
+          
+        - task: SonarQubePrepare@8
+          inputs:
+            SonarQube: 'test-sonar'
+            scannerMode: 'cli'
+            cliScannerVersion: '9.0'
+            configMode: 'manual'
+            cliProjectKey: 'simple-webapp'
+            cliProjectName: 'simple-webapp'
+            cliSources: '.'
+
+        - task: SonarQubePublish@8
+          inputs:
+            pollingTimeoutSec: '200'
+
+        - script: |
+            mvn deploy
+          displayName: Publish aritifacts to Nexus
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+          
