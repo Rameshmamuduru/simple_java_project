@@ -66,8 +66,8 @@ stages:
               sudo systemctl stop tomcat
 
               echo "Deploying WAR..."
-              sudo rm -rf /opt/tomcat/webapps/app*
-              sudo cp /home/deploy/*.war /opt/tomcat/webapps/app.war
+              rm -rf /opt/tomcat/webapps/app*
+              cp /home/deploy/*.war /opt/tomcat/webapps/app.war
 
               echo "Starting Tomcat..."
               sudo systemctl start tomcat
