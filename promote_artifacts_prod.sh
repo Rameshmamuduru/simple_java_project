@@ -5,6 +5,7 @@ RC_REPO="my-app-test-rc-releases"
 RELEASE_REPO="my-app-test-releases"
 GROUP_ID="com.example"
 ARTIFACT_ID="simple-webapp"
+LAST_SUCCESS_REPO="my-app-last-success-release"
 
 # ================= STEP 1: GET VERSION FROM TAG =================
 VERSION=$(git describe --tags --abbrev=0 | sed 's/^v//')
@@ -60,4 +61,4 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 
-echo "Promotion successful: $ARTIFACT_ID:$VERSION"
+echo "Promotion successful: $ARTIFACT_ID-$VERSION.war"
