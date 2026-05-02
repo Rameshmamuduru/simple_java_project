@@ -1,0 +1,57 @@
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  name: test   # your self-hosted agent pool
+
+stages:
+
+# ================= BUILD STAGE =================
+- stage: Build
+  displayName: Build Application
+  jobs:
+    - job: build_job
+      steps:
+        - checkout: self
+
+        - script: |
+            echo "Building Maven project..."
+            mvn clean package
+          displayName: Build WAR
+
+# ================= DEPLOY STAGE =================
+- stage: Deploy
+  
+  displayName: Deploy to EC2 via SSH
+  dependsOn: Build
+  jobs:
+    - job: deploy_job
+      steps:
+
+        - task: CopyFilesOverSSH@0
+          inputs:
+            sshEndpoint: 'service-1'
+            sourceFolder: '$(Build.SourcesDirectory)/target'
+            contents: '**/*.war'
+            targetFolder: '/home/deploy'
+          displayName: Copy WAR to EC2
+
+        - task: SSH@0
+          inputs:
+            sshEndpoint: 'service-1'
+            runOptions: 'commands'
+            commands: |
+              echo "Stopping Tomcat..."
+              sudo systemctl stop tomcat
+
+              echo "Deploying WAR..."
+              sudo cp /home/deploy/*.war /opt/tomcat/webapps/app.war
+
+              echo "Starting Tomcat..."
+              sudo systemctl start tomcat
+
+              echo "Health Check..."
+              curl -f http://3.110.77.189:8080/health || exit 1
+          displayName: Deploy Application
