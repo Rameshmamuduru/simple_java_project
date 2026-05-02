@@ -203,7 +203,6 @@ pipeline {
                     def approved = false
 
                     while (!approved) {
-
                         def userInput = input(
                             message: 'Enter Change Number and Approve',
                             ok: 'Approve',
@@ -219,7 +218,6 @@ pipeline {
                             usernameVariable: 'user',
                             passwordVariable: 'pass'
                         )]) {
-
                             def response = sh(
                                 script: """
                                     curl -s -k -u $user:$pass \
@@ -242,19 +240,19 @@ pipeline {
             }
         }
 
-        stage(Promote Artifacts to Nexus-release Repo){
+        stage('Promote Artifacts to Nexus-release Repo') {
             when {
                 allOf {
                     branch 'main'
                     not { changeRequest() }
                 }
             }
-            steps{
-                chmod +x deploy-prod.sh
+            steps {
+                sh 'chmod +x deploy-prod.sh'
                 sh 'promote_deploy_artifacts_prod.sh nexus_promote'
             }
         }
-        
+
         stage('Deploy to Production') {
             when {
                 allOf {
@@ -263,10 +261,8 @@ pipeline {
                 }
             }
             steps {
-                
-                echo 'Deploying to Production...' 
+                echo 'Deploying to Production...'
                 sh 'promote_deploy_artifacts_prod.sh deploy'
-                
             }
         }
 
@@ -278,7 +274,21 @@ pipeline {
                 }
             }
             steps {
-                sh 'curl -f http://prod-environment/health'
+                script {
+                    def status = sh(
+                        script: "curl -s -o /dev/null -w '%{http_code}' http://prod-environment/health",
+                        returnStdout: true
+                    ).trim()
+
+                    echo "Health status: ${status}"
+
+                    if (status != "200") {
+                        echo "Health check FAILED → triggering rollback"
+                        sh './promote_deploy_artifacts_prod.sh rollback'
+                        error "Deployment failed → rollback executed"
+                    }
+                    echo "Health check passed"
+                }
             }
         }
     }
