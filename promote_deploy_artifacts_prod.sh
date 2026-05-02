@@ -4,17 +4,18 @@ ACTION=$1
 
 echo "Selected action: $ACTION"
 
-# ================= NEXUS PROMOTION =======================
-
-if [ "$ACTION" == "nexus-promote" ]; then
-
 NEXUS_URL="http://3.110.232.118:8081"
 RC_REPO="my-app-test-rc-releases"
 RELEASE_REPO="my-app-test-releases"
-GROUP_ID="com.example"
+GROUP_ID="com.company"
 ARTIFACT_ID="simple-webapp"
 
-# ================= STEP 1: VERSION =================
+# =========================================================
+# ================= NEXUS PROMOTION =======================
+# =========================================================
+
+if [ "$ACTION" == "nexus-promote" ]; then
+
 VERSION=$(git describe --tags --abbrev=0 | sed 's/^v//')
 
 if [ -z "$VERSION" ]; then
@@ -24,7 +25,6 @@ fi
 
 echo "Release version: $VERSION"
 
-# ================= STEP 2: FETCH RC =================
 echo "Fetching latest RC artifact..."
 
 ARTIFACT_URL=$(curl -s -u "$NEXUS_USER:$NEXUS_PASS" \
@@ -35,24 +35,13 @@ ARTIFACT_URL=$(curl -s -u "$NEXUS_USER:$NEXUS_PASS" \
 | tail -1)
 
 if [ -z "$ARTIFACT_URL" ]; then
-    echo "No RC artifact found for version $VERSION"
+    echo "No RC artifact found"
     exit 1
 fi
 
-echo "Latest RC URL: $ARTIFACT_URL"
-
-# ================= STEP 3: DOWNLOAD =================
 FILE_NAME=$(basename "$ARTIFACT_URL")
 
 curl -f -u "$NEXUS_USER:$NEXUS_PASS" -O "$ARTIFACT_URL"
-
-if [ $? -ne 0 ]; then
-  echo "Download failed"
-  exit 1
-fi
-
-# ================= STEP 4: PROMOTE =================
-echo "Promoting artifact..."
 
 curl -f -u "$NEXUS_USER:$NEXUS_PASS" -X POST \
 "$NEXUS_URL/service/rest/v1/components?repository=$RELEASE_REPO" \
@@ -62,113 +51,89 @@ curl -f -u "$NEXUS_USER:$NEXUS_PASS" -X POST \
 -F maven2.asset1=@"$FILE_NAME" \
 -F maven2.asset1.extension=war
 
-if [ $? -ne 0 ]; then
-  echo "Promotion failed"
-  exit 1
-fi
+echo "PROMOTION SUCCESSFUL: $ARTIFACT_ID-$VERSION.war"
 
-echo "Promotion successful: $ARTIFACT_ID-$VERSION.war"
 
-echo "$ARTIFACT_ID-$VERSION.war" > last_success.txt
-
-echo "PROMOTION COMPLETED"
-
-# ================= DEPLOYMENT ============================
+# =========================================================
+# ================= DEPLOY ================================
+# =========================================================
 
 elif [ "$ACTION" == "deploy" ]; then
 
-echo "Starting Deployment..."
+echo "Deploying latest artifact from Nexus..."
 
-ARTIFACT=$(cat last_success.txt)
+ARTIFACT_URL=$(curl -s -u "$NEXUS_USER:$NEXUS_PASS" \
+"$NEXUS_URL/service/rest/v1/search/assets?repository=$RELEASE_REPO&group=$GROUP_ID&name=$ARTIFACT_ID" \
+| jq -r '.items[] | select(.path | endswith(".war")) | .downloadUrl' \
+| sort -V | tail -1)
 
-if [ -z "$ARTIFACT" ]; then
-  echo "No artifact found"
+if [ -z "$ARTIFACT_URL" ]; then
+  echo "No release artifact found"
   exit 1
 fi
 
-echo "Artifact: $ARTIFACT"
+ARTIFACT=$(basename "$ARTIFACT_URL")
 
-# Extract version
-VERSION=$(echo $ARTIFACT | sed 's/.*-\(.*\)\.war/\1/')
+echo "Deploying: $ARTIFACT"
 
-echo "Version: $VERSION"
+curl -f -u "$NEXUS_USER:$NEXUS_PASS" -O "$ARTIFACT_URL"
 
-# ================= DOWNLOAD FROM RELEASE =================
-curl -f -u "$NEXUS_USER:$NEXUS_PASS" -O \
-"$NEXUS_URL/repository/maven-releases/com/company/app/$VERSION/$ARTIFACT"
-
-if [ $? -ne 0 ]; then
-  echo "Download failed"
-  exit 1
-fi
-
-# ================= DEPLOY =================
-echo "Deploying to production..."
-
+# ===== DEPLOY (Tomcat example) =====
 # systemctl stop tomcat
 # cp "$ARTIFACT" /opt/tomcat/webapps/app.war
 # systemctl start tomcat
 
-# Health check
+echo "Running health check..."
 curl -f http://prod-environment/health
 
 if [ $? -ne 0 ]; then
-  echo "Deployment failed"
+  echo "Deployment FAILED"
   exit 1
 fi
 
-echo "Deployment successful"
-
-# ================= SAVE STABLE VERSION =================
-echo "$ARTIFACT" > last_stable.txt
-
-echo "Stable version saved: $ARTIFACT"
+echo "Deployment SUCCESSFUL"
 
 
-# ================= ROLLBACK ============================
+# =========================================================
+# ================= ROLLBACK ==============================
+# =========================================================
 
 elif [ "$ACTION" == "rollback" ]; then
 
-echo "Starting Rollback..."
+echo "Fetching previous stable version from Nexus..."
 
-if [ ! -f last_stable.txt ]; then
-  echo "No stable version found"
+ARTIFACTS=$(curl -s -u "$NEXUS_USER:$NEXUS_PASS" \
+"$NEXUS_URL/service/rest/v1/search/assets?repository=$RELEASE_REPO&group=$GROUP_ID&name=$ARTIFACT_ID" \
+| jq -r '.items[] | select(.path | endswith(".war")) | .downloadUrl' \
+| sort -V)
+
+PREVIOUS=$(echo "$ARTIFACTS" | tail -2 | head -1)
+
+if [ -z "$PREVIOUS" ]; then
+  echo "No previous version found"
   exit 1
 fi
 
-ARTIFACT=$(cat last_stable.txt)
-
-if [ -z "$ARTIFACT" ]; then
-  echo "Rollback artifact empty"
-  exit 1
-fi
+ARTIFACT=$(basename "$PREVIOUS")
 
 echo "Rolling back to: $ARTIFACT"
 
-VERSION=$(echo $ARTIFACT | sed 's/.*-\(.*\)\.war/\1/')
+curl -f -u "$NEXUS_USER:$NEXUS_PASS" -O "$PREVIOUS"
 
-curl -f -u "$NEXUS_USER:$NEXUS_PASS" -O \
-"$NEXUS_URL/repository/maven-releases/com/company/app/$VERSION/$ARTIFACT"
-
-if [ $? -ne 0 ]; then
-  echo "Rollback download failed"
-  exit 1
-fi
-
-echo "Deploying rollback version..."
-
+# ===== ROLLBACK DEPLOY =====
 # systemctl stop tomcat
 # cp "$ARTIFACT" /opt/tomcat/webapps/app.war
 # systemctl start tomcat
 
+echo "Running rollback health check..."
 curl -f http://prod-environment/health
 
 if [ $? -ne 0 ]; then
-  echo "Rollback FAILED"
+  echo "ROLLBACK FAILED"
   exit 1
 fi
 
-echo "Rollback SUCCESSFUL"
+echo "ROLLBACK SUCCESSFUL"
 
 else
 
