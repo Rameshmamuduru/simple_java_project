@@ -21,19 +21,38 @@ stages:
             mvn clean package
           displayName: Build WAR
 
+        # 🔥 ADD THIS (publish artifact)
+        - task: PublishBuildArtifacts@1
+          inputs:
+            pathToPublish: '$(Build.SourcesDirectory)/target'
+            artifactName: 'drop'
+          displayName: Publish WAR Artifact
+
 # ================= DEPLOY STAGE =================
 - stage: Deploy
-  
   displayName: Deploy to EC2 via SSH
   dependsOn: Build
   jobs:
     - job: deploy_job
       steps:
 
+        # 🔥 ADD THIS (download artifact)
+        - task: DownloadBuildArtifacts@0
+          inputs:
+            artifactName: 'drop'
+            downloadPath: '$(Pipeline.Workspace)'
+          displayName: Download WAR Artifact
+
+        # 🔥 OPTIONAL DEBUG (very useful)
+        - script: |
+            echo "Checking artifact files..."
+            ls -la $(Pipeline.Workspace)/drop
+          displayName: Verify WAR Exists
+
         - task: CopyFilesOverSSH@0
           inputs:
             sshEndpoint: 'service-1'
-            sourceFolder: '$(Build.SourcesDirectory)/target'
+            sourceFolder: '$(Pipeline.Workspace)/drop'   # ✅ FIXED
             contents: '**/*.war'
             targetFolder: '/home/deploy'
           displayName: Copy WAR to EC2
@@ -47,6 +66,7 @@ stages:
               sudo systemctl stop tomcat
 
               echo "Deploying WAR..."
+              sudo rm -rf /opt/tomcat/webapps/app*
               sudo cp /home/deploy/*.war /opt/tomcat/webapps/app.war
 
               echo "Starting Tomcat..."
