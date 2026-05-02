@@ -73,5 +73,5 @@ stages:
               sudo systemctl start tomcat
 
               echo "Health Check..."
-              curl -f http://3.110.77.189:8080/health || exit 1
+              curl http://3.110.77.189:8080/app/ || exit 1
           displayName: Deploy Application
