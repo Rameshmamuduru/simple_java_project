@@ -73,9 +73,7 @@ echo "$ARTIFACT_ID-$VERSION.war" > last_success.txt
 
 echo "PROMOTION COMPLETED"
 
-
 # ================= DEPLOYMENT ============================
-
 
 elif [ "$ACTION" == "deploy" ]; then
 
@@ -107,7 +105,6 @@ fi
 # ================= DEPLOY =================
 echo "Deploying to production..."
 
-# Example Tomcat deployment
 # systemctl stop tomcat
 # cp "$ARTIFACT" /opt/tomcat/webapps/app.war
 # systemctl start tomcat
@@ -122,10 +119,61 @@ fi
 
 echo "Deployment successful"
 
+# ================= SAVE STABLE VERSION =================
+echo "$ARTIFACT" > last_stable.txt
+
+echo "Stable version saved: $ARTIFACT"
+
+
+# ================= ROLLBACK ============================
+
+elif [ "$ACTION" == "rollback" ]; then
+
+echo "Starting Rollback..."
+
+if [ ! -f last_stable.txt ]; then
+  echo "No stable version found"
+  exit 1
+fi
+
+ARTIFACT=$(cat last_stable.txt)
+
+if [ -z "$ARTIFACT" ]; then
+  echo "Rollback artifact empty"
+  exit 1
+fi
+
+echo "Rolling back to: $ARTIFACT"
+
+VERSION=$(echo $ARTIFACT | sed 's/.*-\(.*\)\.war/\1/')
+
+curl -f -u "$NEXUS_USER:$NEXUS_PASS" -O \
+"$NEXUS_URL/repository/maven-releases/com/company/app/$VERSION/$ARTIFACT"
+
+if [ $? -ne 0 ]; then
+  echo "Rollback download failed"
+  exit 1
+fi
+
+echo "Deploying rollback version..."
+
+# systemctl stop tomcat
+# cp "$ARTIFACT" /opt/tomcat/webapps/app.war
+# systemctl start tomcat
+
+curl -f http://prod-environment/health
+
+if [ $? -ne 0 ]; then
+  echo "Rollback FAILED"
+  exit 1
+fi
+
+echo "Rollback SUCCESSFUL"
+
 else
 
 echo "Invalid action: $ACTION"
-echo "Usage: nexus-promote | deploy"
+echo "Usage: nexus-promote | deploy | rollback"
 exit 1
 
 fi
